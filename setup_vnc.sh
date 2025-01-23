@@ -42,8 +42,6 @@ show_loading() {
 # Начало установки
 green_text "Начинаем установку. Все операции займут около 5-7 минут."
 log_message "Начинаем установку. Все операции займут около 5-7 минут."
-echo "Unattended-Upgrade::Automatic-Reboot \"false\";" | sudo tee -a /etc/apt/apt.conf.d/50unattended-upgrades
-echo "Unattended-Upgrade::Automatic-Reboot-WithUsers \"false\";" | sudo tee -a /etc/apt/apt.conf.d/50unattended-upgrades
 echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart
 echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
 show_loading $!
@@ -78,9 +76,10 @@ LANG=en_US.UTF-8 expect -c "
     send \"172029\r\";
     expect \"Would you like to enter a view-only password (y/n)?\";
     send \"n\r\";
-    interact
-" &>> "$LOG_FILE" &
+"
 show_loading $!
+interact
+log_message "Пароль VNC установлен."
 
 # Создание файла xstartup
 green_text "Создание файла xstartup"
