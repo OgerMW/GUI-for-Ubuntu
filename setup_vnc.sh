@@ -42,11 +42,26 @@ show_loading() {
 # Начало установки
 green_text "Начинаем установку. Все операции займут около 5-10 минут...но это не точно"
 log_message "Начинаем установку. Все операции займут около 5-10 минут."
+
+# Создаем массив для PID
+pids=()
+
+# Изменение прав доступа и добавление конфигурации
 sudo chmod 777 /etc/apt/apt.conf.d/99needrestart &>> "$LOG_FILE" &
+pids+=($!)
+
 sudo chmod 777 /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
-echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart &>> "$LOG_FILE" & 
+pids+=($!)
+
+echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart &>> "$LOG_FILE" &
+pids+=($!)
+
 echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
-show_loading $!
+pids+=($!)
+
+# Запуск функции анимации с ожиданием завершения всех процессов
+show_loading "${pids[@]}"
+wait "${pids[@]}"  # Ожидание завершения всех фоновых процессов
 
 # Установка необходимых пакетов
 green_text "Установка необходимых пакетов"
