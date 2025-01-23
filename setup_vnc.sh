@@ -33,11 +33,10 @@ show_loading() {
     local delay=0.75
     local spin='/-\|'
     local i=0
-    while kill -0 -q "$pid"; do
+    while true; do
         printf "\r${spin:i++%${#spin}:1} "
         sleep "$delay"
     done
-    printf "\r"  # Очистить строку после завершения
 }
 
 # Начало установки
