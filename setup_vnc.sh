@@ -7,34 +7,33 @@ LOG_FILE="/var/log/vnc_setup.log"  # Путь к файлу лога
 
 # Функция для записи в лог-файл
 log_message() {
-    local message="\$1"
+    local message="$1"
     echo "$message" >> "$LOG_FILE"
 }
 
-# Функция для вывода сообщений по центру экрана
+# Функция для центрирования текста
 center_text() {
-    local text="\$1"
-    local cols=$(tput cols)
-    local length=${#text}
-    local padding=$(( (cols - length) / 2 ))
-    printf "%${padding}s\n" "$text"
+    columns=$(tput cols) # Получаем количество колонок терминала
+    text_length=${#1} # Длина сообщения
+    spaces=$(( ($columns - $text_length) / 2 )) # Вычисляем необходимое количество пробелов для центрировки
+    printf "%*s\n" $spaces "$1" # Выводим сообщение с нужным количеством пробелов слева
 }
 
 # Функция для вывода сообщений зеленым цветом
 green_text() {
     tput bold # Включаем жирный шрифт
     tput setaf 2 # Устанавливаем зеленый цвет
-    center_text "\$1"
+    center_text "$1"
     tput sgr0 # Сбрасываем настройки формата
 }
 
-# Функция анимации
+# Функция для анимации
 show_loading() {
-    local pid="\$1"
+    local pid=$1
     local delay=0.75
     local spin='/-\|'
     local i=0
-    while kill -0 "$pid" 2>/dev/null; do
+    while kill -0 -q "$pid"; do
         printf "\r${spin:i++%${#spin}:1} "
         sleep "$delay"
     done
@@ -69,7 +68,7 @@ log_message "Создаем пользователя vnc"
 } &>> "$LOG_FILE" &
 show_loading $!
 
-# Настраиваем VNC
+# Настройки VNC
 green_text "Настраиваем VNC. Устанавливаем Password - 172029"
 log_message "Настраиваем VNC"
 LANG=en_US.UTF-8 expect -c "
@@ -93,7 +92,6 @@ xrdb \$HOME/.Xresources
 autocutsel -fork
 startxfce4 &
 EOF' &>> "$LOG_FILE" &
-show_loading $!
 sudo -u "${VNC_USER}" chmod +x ~/.vnc/xstartup &>> "$LOG_FILE" &
 show_loading $!
 
@@ -106,11 +104,11 @@ After=syslog.target network.target
 
 [Service]
 Type=forking
-User =${VNC_USER}
-Group=${VNC_USER}
-WorkingDirectory=/home/${VNC_USER}
+User=%I
+Group=%I
+WorkingDirectory=/home/%I
 
-PIDFile=/home/${VNC_USER}/.vnc/%H:%i.pid
+PIDFile=/home/%I/.vnc/%H:%i.pid
 ExecStartPre=-/usr/bin/vncserver -kill :%i > /dev/null 2>&1
 ExecStart=/usr/bin/vncserver -depth 24 -geometry 1920x1080 :%i
 ExecStop=/usr/bin/vncserver -kill :%i
@@ -142,7 +140,10 @@ read -p "" answer
 if [[ "$answer" =~ ^[Yy]$ ]]; then
     log_message "Выполняется перезагрузка..."
     sudo reboot
-else
+elif [[ "$answer" =~ ^[Nn]$ ]]; then
     green_text "Перезагрузка отменена. Завершайте работу системы вручную."
     log_message "Перезагрузка отменена. Работа системы продолжается."
+else
+    red_text "Неверный ввод. Пожалуйста, выберите Y или N."
+    read -p "" answer
 fi
