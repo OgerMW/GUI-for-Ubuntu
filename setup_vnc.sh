@@ -42,7 +42,9 @@ show_loading() {
 # Начало установки
 green_text "Начинаем установку. Все операции займут около 5-10 минут...но это не точно"
 log_message "Начинаем установку. Все операции займут около 5-10 минут."
-echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart &
+sudo chmod 777 /etc/apt/apt.conf.d/99needrestart &>> "$LOG_FILE" &
+sudo chmod 777 /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
+echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart &>> "$LOG_FILE" & 
 echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
 show_loading $!
 
