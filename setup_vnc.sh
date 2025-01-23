@@ -30,7 +30,7 @@ green_text() {
 # Функция для анимации
 show_loading() {
     local pid=$1
-    local delay=0.75
+    local delay=0.25
     local spin='/-\|'
     local i=0
     while true; do
@@ -40,9 +40,9 @@ show_loading() {
 }
 
 # Начало установки
-green_text "Начинаем установку. Все операции займут около 5-7 минут."
-log_message "Начинаем установку. Все операции займут около 5-7 минут."
-echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart
+green_text "Начинаем установку. Все операции займут около 5-10 минут...но это не точно"
+log_message "Начинаем установку. Все операции займут около 5-10 минут."
+echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart &
 echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
 show_loading $!
 
@@ -137,7 +137,10 @@ log_message "Настройка VNC сервера завершена. Вы мо
 read -p "" answer
 if [[ "$answer" =~ ^[Yy]$ ]]; then
     log_message "Выполняется перезагрузка..."
-    sudo reboot
+    sudo reboot || {
+        log_message "Ошибка при перезагрузке системы."
+        exit 1
+    }
 elif [[ "$answer" =~ ^[Nn]$ ]]; then
     green_text "Перезагрузка отменена. Завершайте работу системы вручную."
     log_message "Перезагрузка отменена. Работа системы продолжается."
