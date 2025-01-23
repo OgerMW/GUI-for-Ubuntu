@@ -7,7 +7,7 @@ LOG_FILE="/var/log/vnc_setup.log"  # Путь к файлу лога
 
 # Функция для записи в лог-файл
 log_message() {
-    local message="$1"
+    local message="\$1"
     echo "$message" >> "$LOG_FILE"
 }
 
@@ -16,26 +16,26 @@ center_text() {
     columns=$(tput cols) # Получаем количество колонок терминала
     text_length=${#1} # Длина сообщения
     spaces=$(( ($columns - $text_length) / 2 )) # Вычисляем необходимое количество пробелов для центрировки
-    printf "%*s\n" $spaces "$1" # Выводим сообщение с нужным количеством пробелов слева
+    printf "%*s\n" $spaces "\$1" # Выводим сообщение с нужным количеством пробелов слева
 }
 
 # Функция для вывода сообщений зеленым цветом
 green_text() {
     tput bold # Включаем жирный шрифт
     tput setaf 2 # Устанавливаем зеленый цвет
-    center_text "$1"
+    center_text "\$1"
     tput sgr0 # Сбрасываем настройки формата
 }
 
 # Функция для отображения анимации выполнения команд
-function spinner() {
-    local i=0
+spinner() {
     local delay=0.15
-    
-    while true; do
-        printf "."
-        ((i++ % 4 == 0)) && echo -ne "\r[`printf '%*s'`]\r"
-        sleep $delay
+    while :; do
+        for i in {1..3}; do
+            printf "."
+            sleep $delay
+        done
+        printf "\r"
     done
 }
 
@@ -43,40 +43,59 @@ function spinner() {
 green_text "Начинаем установку. Все операции займут около 5-10 минут...но это не точно"
 log_message "Начинаем установку. Все операции займут около 5-10 минут."
 
-# Добавляем строки в файлы конфигурации
-echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart &>> "$LOG_FILE" &
-echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
-
 # Запускаем анимацию
-spinner &
+spinner & 
+SPINNER_PID=$!
 
-# Ждем окончания добавления строк в файлы конфигурации
-wait %1
+# Добавляем строки в файлы конфигурации
+{
+    echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart
+    echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic
+} &>> "$LOG_FILE"
+
+# Останавливаем анимацию
+kill $SPINNER_PID
+wait $SPINNER_PID 2>/dev/null
 
 # Установка необходимых пакетов
 green_text "Установка необходимых пакетов"
 log_message "Установка необходимых пакетов"
+
+# Запускаем анимацию
+spinner & 
+SPINNER_PID=$!
+
 {
     sudo apt-get update -qq && sudo apt-get upgrade -y -q
     sudo apt-get install -y -q xfce4 xfce4-goodies tightvncserver autocutsel expect
-} &>> "$LOG_FILE" &
-# Запускаем анимацию
-spinner &
+} &>> "$LOG_FILE"
+
+# Останавливаем анимацию
+kill $SPINNER_PID
+wait $SPINNER_PID 2>/dev/null
 
 # Создаем пользователя vnc
 green_text "Создаем пользователя vnc. Устанавливаем User - vnc / Устанавливаем Password - 172029"
 log_message "Создаем пользователя vnc"
+
+# Запускаем анимацию
+spinner & 
+SPINNER_PID=$!
+
 {
     sudo useradd -m -s /bin/bash "${VNC_USER}"
     sudo usermod -aG sudo "${VNC_USER}"
     echo "${VNC_USER}:172029" | sudo chpasswd
-} &>> "$LOG_FILE" &
-# Запускаем анимацию
-spinner &
+} &>> "$LOG_FILE"
+
+# Останавливаем анимацию
+kill $SPINNER_PID
+wait $SPINNER_PID 2>/dev/null
 
 # Настройки VNC
 green_text "Настраиваем VNC. Устанавливаем Password - 172029"
 log_message "Настраиваем VNC"
+
 LANG=en_US.UTF-8 expect -c "
     spawn sudo -u ${VNC_USER} vncpasswd;
     expect \"Enter new UNIX password:\";
