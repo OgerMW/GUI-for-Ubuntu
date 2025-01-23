@@ -27,15 +27,15 @@ green_text() {
     tput sgr0 # Сбрасываем настройки формата
 }
 
-# Функция для анимации
-show_loading() {
-    local pid=$1
-    local delay=0.25
-    local spin='/-\|'
+# Функция для отображения анимации выполнения команд
+function spinner() {
     local i=0
+    local delay=0.15
+    
     while true; do
-        printf "\r${spin:i++%${#spin}:1} "
-        sleep "$delay"
+        printf "."
+        ((i++ % 4 == 0)) && echo -ne "\r[`printf '%*s'`]\r"
+        sleep $delay
     done
 }
 
@@ -47,7 +47,11 @@ log_message "Начинаем установку. Все операции зай
 echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart &>> "$LOG_FILE" &
 echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic &>> "$LOG_FILE" &
 
-show_loading $!
+# Запускаем анимацию
+spinner &
+
+# Ждем окончания добавления строк в файлы конфигурации
+wait %1
 
 # Установка необходимых пакетов
 green_text "Установка необходимых пакетов"
@@ -56,7 +60,8 @@ log_message "Установка необходимых пакетов"
     sudo apt-get update -qq && sudo apt-get upgrade -y -q
     sudo apt-get install -y -q xfce4 xfce4-goodies tightvncserver autocutsel expect
 } &>> "$LOG_FILE" &
-show_loading $!
+# Запускаем анимацию
+spinner &
 
 # Создаем пользователя vnc
 green_text "Создаем пользователя vnc. Устанавливаем User - vnc / Устанавливаем Password - 172029"
@@ -66,7 +71,8 @@ log_message "Создаем пользователя vnc"
     sudo usermod -aG sudo "${VNC_USER}"
     echo "${VNC_USER}:172029" | sudo chpasswd
 } &>> "$LOG_FILE" &
-show_loading $!
+# Запускаем анимацию
+spinner &
 
 # Настройки VNC
 green_text "Настраиваем VNC. Устанавливаем Password - 172029"
@@ -80,7 +86,8 @@ LANG=en_US.UTF-8 expect -c "
     expect \"Would you like to enter a view-only password (y/n)?\";
     send \"n\r\";
 "
-show_loading $!
+# Запускаем анимацию
+spinner &
 interact
 log_message "Пароль VNC установлен."
 
@@ -94,7 +101,8 @@ autocutsel -fork
 startxfce4 &
 EOF' &>> "$LOG_FILE" &
 sudo -u "${VNC_USER}" chmod +x ~/.vnc/xstartup &>> "$LOG_FILE" &
-show_loading $!
+# Запускаем анимацию
+spinner &
 
 # Создание systemd сервиса для VNC
 green_text "Создание systemd сервиса для VNC"
@@ -126,13 +134,15 @@ log_message "Включение и запуск VNC сервиса"
     sudo systemctl enable vncserver@${DISPLAY_NUMBER}
     sudo systemctl start vncserver@${DISPLAY_NUMBER}
 } &>> "$LOG_FILE" &
-show_loading $!
+# Запускаем анимацию
+spinner &
 
 # Проверяем статус службы
 green_text "Проверка статуса службы VNC"
 log_message "Проверка статуса службы VNC"
 sudo systemctl status vncserver@${DISPLAY_NUMBER} &>> "$LOG_FILE" &
-show_loading $!
+# Запускаем анимацию
+spinner &
 
 # Предложение о перезагрузке
 green_text "Настройка VNC сервера завершена. Вы можете подключиться к серверу. Для завершения настроек рекомендуется перезагрузить систему. Выполнить перезагрузку сейчас? (Y/N)"
