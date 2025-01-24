@@ -56,9 +56,9 @@ echo -e "172029\n172029" | passwd vnc
 
 # Переключение на пользователя vnc и настройка VNC
 print_green "Настройка VNC-сервера..."
-su - vnc <<EOF > /dev/null 2>&1 &
 print_green "Установите пароль для подключения по VNC:"
 echo -e "172029\n172029" | vncpasswd
+su - vnc <<EOF > /dev/null 2>&1 &
 
 # Создание и настройка файла xstartup
 cat <<EOL > ~/.vnc/xstartup
