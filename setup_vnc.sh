@@ -1,182 +1,87 @@
 #!/bin/bash
 
-# Имя пользователя и номер дисплея VNC
-VNC_USER="vnc"
-DISPLAY_NUMBER="1"
-LOG_FILE="/var/log/vnc_setup.log"  # Путь к файлу лога
-
-# Функция для записи в лог-файл
-log_message() {
-    local message="\$1"
-    echo "$message" >> "$LOG_FILE"
-}
-
-# Функция для центрирования текста
-center_text() {
-    columns=$(tput cols) # Получаем количество колонок терминала
-    text_length=${#1} # Длина сообщения
-    spaces=$(( ($columns - $text_length) / 2 )) # Вычисляем необходимое количество пробелов для центрировки
-    printf "%*s\n" $spaces "\$1" # Выводим сообщение с нужным количеством пробелов слева
+# Функция для выполнения команд с сокрытием вывода
+execute_silent() {
+  "$@" > /dev/null 2>&1
 }
 
 # Функция для вывода сообщений зеленым цветом
-green_text() {
-    tput bold # Включаем жирный шрифт
-    tput setaf 2 # Устанавливаем зеленый цвет
-    center_text "\$1"
-    tput sgr0 # Сбрасываем настройки формата
+green_echo() {
+  echo -e "\033[32m$1\033[0m"
 }
 
-# Функция для отображения анимации выполнения команд
-spinner() {
-    local delay=0.15
-    while :; do
-        for i in {1..3}; do
-            printf "."
-            sleep $delay
-        done
-        printf "\r"
-    done
-}
+# Отключаем автоматическое обновление системы
+green_echo "Отключаем автоматическое обновление системы..."
+execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade \"0\";" >> /etc/apt/apt.conf.d/99needrestart'
+execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade \"0\";" >> /etc/apt/apt.conf.d/10periodic'
 
-# Начало установки
-green_text "Начинаем установку. Все операции займут около 5-10 минут...но это не точно"
-log_message "Начинаем установку. Все операции займут около 5-10 минут."
+# Проверяем наличие sudo и устанавливаем его, если необходимо
+if ! command -v sudo &>/dev/null; then
+  green_echo "Устанавливаем sudo..."
+  execute_silent apt-get update
+  execute_silent apt-get install -y sudo
+else
+  green_echo "Sudo уже установлен."
+fi
 
-# Запускаем анимацию
-spinner & 
-SPINNER_PID=$!
+# Обновляем систему и устанавливаем необходимые пакеты
+green_echo "Обновляем систему и устанавливаем необходимые пакеты..."
+execute_silent sudo apt-get update
+execute_silent sudo apt-get upgrade -y
+execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocutsel
 
-# Добавляем строки в файлы конфигурации
-{
-    echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/99needrestart
-    echo "APT::Periodic::Unattended-Upgrade \"0\";" | sudo tee -a /etc/apt/apt.conf.d/10periodic
-} &>> "$LOG_FILE"
+# Запрашиваем пароль для пользователя vnc
+read -sp 'Введите пароль для пользователя "vnc": ' vnc_password
+echo
 
-# Останавливаем анимацию
-kill $SPINNER_PID
-wait $SPINNER_PID 2>/dev/null
+# Создание пользователя VNC
+green_echo "Создаем пользователя VNC..."
+execute_silent sudo adduser --disabled-password --gecos "" vnc
+echo "vnc:$vnc_password" | chpasswd
+execute_silent sudo usermod -aG sudo vnc
 
-# Установка необходимых пакетов
-green_text "Установка необходимых пакетов"
-log_message "Установка необходимых пакетов"
-
-# Запускаем анимацию
-spinner & 
-SPINNER_PID=$!
-
-{
-    sudo apt-get update -qq && sudo apt-get upgrade -y -q
-    sudo apt-get install -y -q xfce4 xfce4-goodies tightvncserver autocutsel expect
-} &>> "$LOG_FILE"
-
-# Останавливаем анимацию
-kill $SPINNER_PID
-wait $SPINNER_PID 2>/dev/null
-
-# Создаем пользователя vnc
-green_text "Создаем пользователя vnc. Устанавливаем User - vnc / Устанавливаем Password - 172029"
-log_message "Создаем пользователя vnc"
-
-# Запускаем анимацию
-spinner & 
-SPINNER_PID=$!
-
-{
-    sudo useradd -m -s /bin/bash "${VNC_USER}"
-    sudo usermod -aG sudo "${VNC_USER}"
-    echo "${VNC_USER}:172029" | sudo chpasswd
-} &>> "$LOG_FILE"
-
-# Останавливаем анимацию
-kill $SPINNER_PID
-wait $SPINNER_PID 2>/dev/null
-
-# Настройки VNC
-green_text "Настраиваем VNC. Устанавливаем Password - 172029"
-log_message "Настраиваем VNC"
-
-LANG=en_US.UTF-8 expect -c "
-    spawn sudo -u ${VNC_USER} vncpasswd;
-    expect \"Enter new UNIX password:\";
-    send \"172029\r\";
-    expect \"Retype new UNIX password:\";
-    send \"172029\r\";
-    expect \"Would you like to enter a view-only password (y/n)?\";
-    send \"n\r\";
-"
-# Запускаем анимацию
-spinner &
-interact
-log_message "Пароль VNC установлен."
-
-# Создание файла xstartup
-green_text "Создание файла xstartup"
-log_message "Создание файла xstartup"
-sudo -u "${VNC_USER}" bash -c 'cat << EOF > ~/.vnc/xstartup
+# Настройка VNC сервера для пользователя vnc
+green_echo "Настраиваем VNC сервер для пользователя vnc..."
+su - vnc <<EOF
+vncpasswd
+mkdir -p ~/.vnc
+cat <<'VNCSTARTUP' > ~/.vnc/xstartup
 #!/bin/bash
 xrdb \$HOME/.Xresources
 autocutsel -fork
 startxfce4 &
-EOF' &>> "$LOG_FILE" &
-sudo -u "${VNC_USER}" chmod +x ~/.vnc/xstartup &>> "$LOG_FILE" &
-# Запускаем анимацию
-spinner &
+VNCSTARTUP
+chmod +x ~/.vnc/xstartup
+exit
+EOF
 
-# Создание systemd сервиса для VNC
-green_text "Создание systemd сервиса для VNC"
-cat << EOF | sudo tee /etc/systemd/system/vncserver@.service
+# Создание системного сервиса для автоматического запуска VNC сервера
+green_echo "Создаем системный сервис для автоматического запуска VNC сервера..."
+sudo cat <<'VNCSYSTEMD' > /etc/systemd/system/vncserver@.service
 [Unit]
 Description=Start VNC server at startup
 After=syslog.target network.target
 
 [Service]
 Type=forking
-User=%I
-Group=%I
-WorkingDirectory=/home/%I
+User=vnc
+Group=vnc
+WorkingDirectory=/home/vnc
 
-PIDFile=/home/%I/.vnc/%H:%i.pid
+PIDFile=/home/vnc/.vnc/%H:%i.pid
 ExecStartPre=-/usr/bin/vncserver -kill :%i > /dev/null 2>&1
 ExecStart=/usr/bin/vncserver -depth 24 -geometry 1920x1080 :%i
 ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
 WantedBy=multi-user.target
-EOF
+VNCSYSTEMD
 
-# Включение и запуск VNC сервиса
-green_text "Включение и запуск VNC сервиса"
-log_message "Включение и запуск VNC сервиса"
-{
-    sudo systemctl daemon-reload
-    sudo systemctl enable vncserver@${DISPLAY_NUMBER}
-    sudo systemctl start vncserver@${DISPLAY_NUMBER}
-} &>> "$LOG_FILE" &
-# Запускаем анимацию
-spinner &
+# Активируем сервис и перезагружаем систему
+green_echo "Активируем сервис и запускаем VNC сервер..."
+execute_silent sudo systemctl daemon-reload
+execute_silent sudo systemctl enable vncserver@1
+execute_silent sudo systemctl start vncserver@1
+# sudo reboot # Комментарий о необходимости перезагрузки системы
 
-# Проверяем статус службы
-green_text "Проверка статуса службы VNC"
-log_message "Проверка статуса службы VNC"
-sudo systemctl status vncserver@${DISPLAY_NUMBER} &>> "$LOG_FILE" &
-# Запускаем анимацию
-spinner &
-
-# Предложение о перезагрузке
-green_text "Настройка VNC сервера завершена. Вы можете подключиться к серверу. Для завершения настроек рекомендуется перезагрузить систему. Выполнить перезагрузку сейчас? (Y/N)"
-log_message "Настройка VNC сервера завершена. Вы можете подключиться к серверу. Для завершения настроек рекомендуется перезагрузить систему. Выполнить перезагрузку сейчас?"
-read -p "" answer
-if [[ "$answer" =~ ^[Yy]$ ]]; then
-    log_message "Выполняется перезагрузка..."
-    sudo reboot || {
-        log_message "Ошибка при перезагрузке системы."
-        exit 1
-    }
-elif [[ "$answer" =~ ^[Nn]$ ]]; then
-    green_text "Перезагрузка отменена. Завершайте работу системы вручную."
-    log_message "Перезагрузка отменена. Работа системы продолжается."
-else
-    red_text "Неверный ввод. Пожалуйста, выберите Y или N."
-    read -p "" answer
-fi
+green_echo "GUI и VNC установлены успешно. Чтобы подключиться, используйте IP-адрес вашего сервера и порт 5901."
