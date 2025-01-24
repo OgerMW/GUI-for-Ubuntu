@@ -24,14 +24,14 @@ spinner() {
 }
 
 # Отключаем автоматическое обновление системы
-print_green "Отключаем вывод запроса о необходимости перезапуска системных служб..."
+print_green "Отключение вывода запроса о необходимости перезапуска системных служб..."
 echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null &
 spinner $!
 echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null &
 spinner $!
 
 # Установка необходимых пакетов и обновление системы
-print_green "Установка sudo и обновление системы..."
+print_green "Обновление системы..."
 apt install sudo -y > /dev/null 2>&1 &
 spinner $!
 sudo apt update > /dev/null 2>&1 &
