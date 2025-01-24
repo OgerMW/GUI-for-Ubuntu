@@ -63,7 +63,7 @@ spinner $!
 
 # Перезагрузка системы
 print_green "Настройка завершена. Хотите перезагрузить систему? (Y/n)"
-read -r answer  # Считываем ответ пользователя
+read -r answer < /dev/tty  # Чтение ответа из терминала
 # Приводим ответ к нижнему регистру
 answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
 case $answer in
