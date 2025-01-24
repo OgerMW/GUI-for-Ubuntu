@@ -103,22 +103,15 @@ sudo systemctl start vncserver@1 > /dev/null 2>&1 &
 spinner $!
 
 # Перезагрузка системы
-print_green "Настройка завершена."
-while true; do
-    read -p "Хотите перезагрузить систему сейчас? (y/n): " reboot_choice
-    case $reboot_choice in
-        [Yy]* )
-            print_green "Система будет перезагружена..."
-            print_green "После перезагрузки VNC-сервер будет доступен на порту 5901. Вы можете подключиться к нему с помощью любого VNC-клиента или Mobaxterm, используя IP-адрес сервера и пароль, который вы установили для VNC."
-            sudo reboot
-            break
-            ;;
-        [Nn]* )
-            print_green "Перезагрузка отменена. Вы можете перезагрузить систему вручную позже."
-            break
-            ;;
-        * )
-            print_green "Пожалуйста, введите 'y' для перезагрузки или 'n' для отмены."
-            ;;
-    esac
-done
+print_green "Настройка завершена. Хотите перезагрузить систему? (Y/n)"
+read -rp "" answer
+case ${answer,,} in
+    y|yes)
+        print_green "Система будет перезагружена..."
+        sudo reboot
+        ;;
+    *)
+        print_green "Перезагрузка отменена. Завершение работы скрипта."
+        exit 0
+        ;;
+esac
