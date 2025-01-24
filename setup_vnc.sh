@@ -32,37 +32,7 @@ spinner $!
 
 # Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
-while true; do
-    # Запрашиваем пароль у пользователя
-    read -sp "New password: " password
-    echo
-    read -sp "Retype new password: " password_confirm
-    echo
-
-    # Проверяем, совпадают ли пароли
-    if [ "$password" != "$password_confirm" ]; then
-        print_green "Пароли не совпадают. Попробуйте снова."
-        continue
-    fi
-
-    # Используем expect для автоматизации ввода пароля
-    expect <<EOF
-spawn passwd vnc
-expect "New password:"
-send "$password\r"
-expect "Retype new password:"
-send "$password_confirm\r"
-expect eof
-EOF
-
-    # Проверяем результат выполнения команды passwd
-    if [ $? -eq 0 ]; then
-        print_green "Пароль успешно установлен."
-        break
-    else
-        print_green "Произошла ошибка. Попробуйте снова."
-    fi
-done
+echo -e "172029\n172029" | passwd vnc
 
 # Переключение на пользователя vnc и настройка VNC
 print_green "Настройка VNC-сервера..."
