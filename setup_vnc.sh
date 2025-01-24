@@ -40,6 +40,18 @@ su - vnc <<EOF > /dev/null 2>&1 &
 print_green "Установите пароль для подключения по VNC:"
 echo -e "172029\n172029" | vncpasswd
 
+# Создание и настройка файла xstartup
+cat <<EOL > ~/.vnc/xstartup
+#!/bin/bash
+xrdb \$HOME/.Xresources
+autocutsel -fork
+startxfce4 &
+EOL
+
+chmod 755 ~/.vnc/xstartup
+EOF
+spinner $!
+
 # Перезагрузка системы
 print_green "Настройка завершена. Хотите перезагрузить систему? (Y/n)"
 read -rp "" answer
