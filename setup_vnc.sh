@@ -15,15 +15,6 @@ green_echo "Отключаем автоматическое обновление
 execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade \"0\";" >> /etc/apt/apt.conf.d/99needrestart'
 execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade \"0\";" >> /etc/apt/apt.conf.d/10periodic'
 
-# Проверяем наличие sudo и устанавливаем его, если необходимо
-if ! command -v sudo &>/dev/null; then
-  green_echo "Устанавливаем sudo..."
-  execute_silent apt-get update
-  execute_silent apt-get install -y sudo
-else
-  green_echo "Sudo уже установлен."
-fi
-
 # Обновляем систему и устанавливаем необходимые пакеты
 green_echo "Обновляем систему и устанавливаем необходимые пакеты..."
 execute_silent sudo apt-get update
@@ -33,6 +24,11 @@ execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocu
 # Запрашиваем пароль для пользователя vnc
 read -sp 'Введите пароль для пользователя "vnc": ' vnc_password
 echo
+read -sp 'Подтвердите пароль для пользователя "vnc": ' vnc_password_confirm
+if [[ "$vnc_password" != "$vnc_password_confirm" ]]; then
+  green_echo "Пароли не совпадают. Пожалуйста, повторите попытку."
+  exit 1
+fi
 
 # Создание пользователя VNC
 green_echo "Создаем пользователя VNC..."
@@ -57,7 +53,7 @@ EOF
 
 # Создание системного сервиса для автоматического запуска VNC сервера
 green_echo "Создаем системный сервис для автоматического запуска VNC сервера..."
-sudo bash -c 'cat <<VNCSYSTEMD > /etc/systemd/system/vncserver@.service
+sudo tee /etc/systemd/system/vncserver@.service > /dev/null <<VNCSYSTEMD
 [Unit]
 Description=Start VNC server at startup
 After=syslog.target network.target
@@ -75,7 +71,7 @@ ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
 WantedBy=multi-user.target
-VNCSYSTEMD'
+VNCSYSTEMD
 
 # Активируем сервис и перезагружаем систему
 green_echo "Активируем сервис и запускаем VNC сервер..."
