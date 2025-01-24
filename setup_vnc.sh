@@ -26,7 +26,12 @@ usermod -aG sudo vnc > /dev/null 2>&1
 
 # Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
-while ! passwd vnc; do
+while true; do
+    if passwd vnc; then
+        break
+    else
+        print_green "Попробуйте снова:"
+    fi
 done
 
 # Переключение на пользователя vnc и настройка VNC
