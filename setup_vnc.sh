@@ -57,7 +57,7 @@ EOF
 
 # Создание системного сервиса для автоматического запуска VNC сервера
 green_echo "Создаем системный сервис для автоматического запуска VNC сервера..."
-sudo cat <<'VNCSYSTEMD' > /etc/systemd/system/vncserver@.service
+sudo bash -c 'cat <<VNCSYSTEMD > /etc/systemd/system/vncserver@.service
 [Unit]
 Description=Start VNC server at startup
 After=syslog.target network.target
@@ -75,7 +75,7 @@ ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
 WantedBy=multi-user.target
-VNCSYSTEMD
+VNCSYSTEMD'
 
 # Активируем сервис и перезагружаем систему
 green_echo "Активируем сервис и запускаем VNC сервер..."
