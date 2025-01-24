@@ -10,14 +10,17 @@ spinner() {
     local pid=$1
     local delay=0.1
     local spinstr='|/-\'
-    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
-        local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
-        printf "\b\b\b\b\b\b"
+    # Скрываем курсор
+    tput civis
+    while ps -p $pid > /dev/null; do
+        for i in $(seq 0 3); do
+            printf "\r [%c] " "${spinstr:$i:1}"
+            sleep $delay
+        done
     done
-    printf "    \b\b\b\b"
+    # Восстанавливаем курсор
+    tput cnorm
+    printf "\r      \r"  # Очищаем строку с анимацией
 }
 
 # Отключаем автоматическое обновление системы
