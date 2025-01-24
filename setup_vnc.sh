@@ -24,14 +24,14 @@ spinner() {
 }
 
 # Отключаем автоматическое обновление системы
-print_green "Отключение вывода запроса о необходимости перезапуска системных служб..."
+print_green "Отключаем вывод запроса о необходимости перезапуска системных служб..."
 echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null &
 spinner $!
 echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null &
 spinner $!
 
 # Установка необходимых пакетов и обновление системы
-print_green "Обновление системы..."
+print_green "Установка sudo и обновление системы..."
 apt install sudo -y > /dev/null 2>&1 &
 spinner $!
 sudo apt update > /dev/null 2>&1 &
@@ -53,11 +53,25 @@ spinner $!
 # Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
 while true; do
-    # Запускаем passwd в интерактивном режиме
-    if passwd vnc; then
-        break  # Если пароль успешно установлен, выходим из цикла
+    # Запрашиваем пароль у пользователя
+    read -sp "New password: " password
+    echo
+    read -sp "Retype new password: " password_confirm
+    echo
+
+    # Проверяем, совпадают ли пароли
+    if [ "$password" != "$password_confirm" ]; then
+        print_green "Пароли не совпадают. Попробуйте снова."
+        continue
+    fi
+
+    # Устанавливаем пароль для пользователя vnc
+    echo "vnc:$password" | sudo chpasswd
+    if [ $? -eq 0 ]; then
+        print_green "Пароль успешно установлен."
+        break
     else
-        print_green "Пароли не совпадают или произошла ошибка. Попробуйте снова:"
+        print_green "Ошибка при установке пароля. Попробуйте снова."
     fi
 done
 
