@@ -26,24 +26,18 @@ green_echo "Создаем пользователя VNC..."
 execute_silent sudo useradd -m -s /bin/bash vnc
 execute_silent sudo usermod -aG sudo vnc
 
-# Запрос пароля для пользователя VNC
-read -sp 'Введите пароль для пользователя "vnc": ' vnc_password
-echo
-read -sp 'Подтверждение пароля для пользователя "vnc": ' vnc_password_confirm
-echo
+# Создание пароля пользователя VNC
+green_echo "Задаем пароль пользователя VNC..."
+passwd vnc
 
-if [[ $vnc_password != $vnc_password_confirm ]]; then
-  green_echo "Пароли не совпадают. Пожалуйста, повторите попытку."
-  exit 1
-fi
-
-# Установка пароля для пользователя VNC
-echo -e "$vnc_password\n$vnc_password" | sudo passwd vnc
+# Установка пароля для сеанса VNC
+green_echo "Задаем пароль для подключения по VNC..."
+su - vnc
+vncpasswd
 
 # Настройка VNC сервера для пользователя vnc
 green_echo "Настраиваем VNC сервер для пользователя vnc..."
 su - vnc <<EOF
-vncpasswd
 mkdir -p ~/.vnc
 cat <<'VNCSTARTUP' > ~/.vnc/xstartup
 #!/bin/bash
