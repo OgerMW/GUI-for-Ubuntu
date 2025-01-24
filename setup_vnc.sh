@@ -7,8 +7,8 @@ print_green() {
 
 # Отключаем автоматическое обновление системы
 print_green "Отключаем вывод запроса о необходимости перезапуска системных служб..."
-execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99needrestart
-execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/10periodic
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null
 
 # Установка необходимых пакетов и обновление системы
 print_green "Установка sudo и обновление системы..."
@@ -23,8 +23,11 @@ sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel > /dev/null 2>
 print_green "Создание пользователя vnc..."
 useradd -m -s /bin/bash vnc > /dev/null 2>&1
 usermod -aG sudo vnc > /dev/null 2>&1
+
+# Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
-passwd vnc
+while ! passwd vnc; do
+done
 
 # Переключение на пользователя vnc и настройка VNC
 print_green "Настройка VNC-сервера..."
