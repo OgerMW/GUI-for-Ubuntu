@@ -11,9 +11,9 @@ green_echo() {
 }
 
 # Отключаем автоматическое обновление системы
-green_echo "Отключаем автоматическое обновление системы..."
-execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade \"0\";" >> /etc/apt/apt.conf.d/99needrestart'
-execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade \"0\";" >> /etc/apt/apt.conf.d/10periodic'
+green_echo "Отключаем вывод запроса о необходимости перезапуска системных служб..."
+execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99needrestart
+execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/10periodic
 
 # Обновляем систему и устанавливаем необходимые пакеты
 green_echo "Обновляем систему и устанавливаем необходимые пакеты..."
@@ -21,20 +21,19 @@ execute_silent sudo apt-get update
 execute_silent sudo apt-get upgrade -y
 execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocutsel
 
-# Запрашиваем пароль для пользователя vnc
-read -sp 'Введите пароль для пользователя "vnc": ' vnc_password
-echo
-read -sp 'Подтвердите пароль для пользователя "vnc": ' vnc_password_confirm
-if [[ "$vnc_password" != "$vnc_password_confirm" ]]; then
-  green_echo "Пароли не совпадают. Пожалуйста, повторите попытку."
-  exit 1
-fi
-
 # Создание пользователя VNC
 green_echo "Создаем пользователя VNC..."
 execute_silent sudo adduser --disabled-password --gecos "" vnc
-echo "vnc:$vnc_password" | chpasswd
 execute_silent sudo usermod -aG sudo vnc
+
+# Запрашиваем пароль для пользователя vnc
+read -sp 'Введите пароль для пользователя "vnc": ' vnc_password
+echo
+read -sp 'Подтверждение пароля для пользователя "vnc": ' vnc_password_confirm
+if [[ "$vnc_password" != "$vnc_passworConfirm" ]]; then
+  green_echo "Пароли не совпадают. Пожалуйста, повторите попытку."
+  exit 1
+fi
 
 # Настройка VNC сервера для пользователя vnc
 green_echo "Настраиваем VNC сервер для пользователя vnc..."
@@ -53,7 +52,7 @@ EOF
 
 # Создание системного сервиса для автоматического запуска VNC сервера
 green_echo "Создаем системный сервис для автоматического запуска VNC сервера..."
-sudo tee /etc/systemd/system/vncserver@.service > /dev/null <<VNCSYSTEMD
+sudo bash -c 'cat <<VNCSYSTEMD > /etc/systemd/system/vncserver@.service
 [Unit]
 Description=Start VNC server at startup
 After=syslog.target network.target
@@ -71,9 +70,9 @@ ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
 WantedBy=multi-user.target
-VNCSYSTEMD
+VNCSYSTEMD'
 
-# Активируем сервис и перезагружаем систему
+# Активируем сервис и запускаем VNC сервер
 green_echo "Активируем сервис и запускаем VNC сервер..."
 execute_silent sudo systemctl daemon-reload
 execute_silent sudo systemctl enable vncserver@1
