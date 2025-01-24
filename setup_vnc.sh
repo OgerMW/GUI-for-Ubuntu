@@ -23,7 +23,7 @@ execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocu
 
 # Создание пользователя VNC
 green_echo "Создаем пользователя VNC..."
-execute_silent sudo adduser -u vnc -g 1 -s /bin/bash vnc_name
+execute_silent sudo useradd -m -s /bin/bash vnc
 execute_silent sudo usermod -aG sudo vnc
 
 # Установка пароля для пользователя VNC
