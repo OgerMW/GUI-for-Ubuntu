@@ -38,7 +38,16 @@ echo -e "172029\n172029" | passwd vnc
 print_green "Настройка VNC-сервера..."
 su - vnc <<'EOF' > /dev/null 2>&1 &
 print_green "Установите пароль для подключения по VNC:"
-echo -e "172029\n172029" | vncpasswd
+
+# Используем expect для автоматизации ввода пароля
+expect <<EOS
+spawn vncpasswd
+expect "Password:"
+send "172029\r"
+expect "Verify:"
+send "172029\r"
+expect eof
+EOS
 
 # Создание и настройка файла xstartup
 cat <<EOL > ~/.vnc/xstartup
@@ -55,7 +64,9 @@ spinner $!
 # Перезагрузка системы
 print_green "Настройка завершена. Хотите перезагрузить систему? (Y/n)"
 read -rp "" answer
-case ${answer,,} in
+# Приводим ответ к нижнему регистру
+answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+case $answer in
     y|yes)
         print_green "Система будет перезагружена..."
         sudo reboot
