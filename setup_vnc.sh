@@ -53,10 +53,11 @@ spinner $!
 # Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
 while true; do
+    # Запускаем passwd в интерактивном режиме
     if passwd vnc; then
-        break
+        break  # Если пароль успешно установлен, выходим из цикла
     else
-        print_green "Попробуйте снова:"
+        print_green "Пароли не совпадают или произошла ошибка. Попробуйте снова:"
     fi
 done
 
@@ -76,6 +77,7 @@ EOL
 
 chmod 755 ~/.vnc/xstartup
 EOF
+spinner $!
 
 # Создание и настройка systemd-юнита для VNC
 print_green "Настройка systemd-юнита для VNC..."
@@ -98,11 +100,14 @@ ExecStop=/usr/bin/vncserver -kill :%i
 [Install]
 WantedBy=multi-user.target
 EOL' &
+spinner $!
 
 # Включение и запуск службы VNC
 print_green "Включение и запуск службы VNC..."
 sudo systemctl enable vncserver@1 > /dev/null 2>&1 &
+spinner $!
 sudo systemctl start vncserver@1 > /dev/null 2>&1 &
+spinner $!
 
 # Перезагрузка системы
 print_green "Настройка завершена. Система будет перезагружена..."
