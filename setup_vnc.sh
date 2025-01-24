@@ -1,73 +1,51 @@
 #!/bin/bash
 
-# Функция для выполнения команд с сокрытием вывода
-execute_silent() {
-  "$@" > /dev/null 2>&1
-}
-
-# Функция для вывода сообщений зеленым цветом
-green_echo() {
-  echo -e "\033[32m$1\033[0m"
+# Функция для вывода текста зеленым цветом
+print_green() {
+    echo -e "\e[32m$1\e[0m"
 }
 
 # Отключаем автоматическое обновление системы
-green_echo "Отключаем вывод запроса о необходимости перезапуска системных служб..."
+print_green "Отключаем вывод запроса о необходимости перезапуска системных служб..."
 execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99needrestart
 execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/10periodic
 
-# Обновляем систему и устанавливаем необходимые пакеты
-green_echo "Обновляем систему и устанавливаем необходимые компоненты..."
-execute_silent sudo apt-get update
-execute_silent sudo apt-get upgrade -y
-execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocutsel expect
+# Установка необходимых пакетов и обновление системы
+print_green "Установка sudo и обновление системы..."
+apt install sudo -y > /dev/null 2>&1
+sudo apt update > /dev/null 2>&1
+sudo apt upgrade -y > /dev/null 2>&1
 
-# Создание пользователя VNC
-green_echo "Создаем пользователя VNC..."
-execute_silent sudo useradd -m -s /bin/bash vnc
-execute_silent sudo usermod -aG sudo vnc
+print_green "Установка дополнительных компонентов..."
+sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel > /dev/null 2>&1
 
-# Запрос пароля для пользователя VNC
-green_echo "Задаем пароль пользователя VNC..."
-read -sp 'New password: ' vnc_password
-echo
-read -sp 'Retype new password: ' vnc_password_confirm
-echo
+# Создание пользователя vnc и настройка прав
+print_green "Создание пользователя vnc..."
+useradd -m -s /bin/bash vnc > /dev/null 2>&1
+usermod -aG sudo vnc > /dev/null 2>&1
+print_green "Установите пароль для пользователя vnc:"
+passwd vnc
 
-# Проверка совпадения введенного пароля
-if [[ $vnc_password != $vnc_password_confirm ]]; then
-  green_echo "Пароли не совпадают! Пожалуйста, попробуйте снова."
-  exit 1
-fi
+# Переключение на пользователя vnc и настройка VNC
+print_green "Настройка VNC-сервера..."
+su - vnc <<EOF > /dev/null 2>&1
+print_green "Установите пароль для подключения по VNC:"
+vncpasswd
 
-# Установка пароля пользователя VNC
-green_echo "Установка пароля пользователя VNC..."
-echo -e "$vnc_password\n$vnc_password" | sudo passwd vnc
-
-# Установка пароля для сеанса VNC
-green_echo "Задаем пароль для подключения по VNC..."
-sudo su - vnc -c "vncpasswd" <<-EOF
-$vnc_password
-$vnc_password
-n
-EOF
-
-# Настройка VNC сервера для пользователя vnc
-green_echo "Настраиваем VNC сервер для пользователя vnc..."
-su - vnc <<EOF
-mkdir -p ~/.vnc
-cat <<'VNCSTARTUP' > ~/.vnc/xstartup
+# Создание и настройка файла xstartup
+cat <<EOL > ~/.vnc/xstartup
 #!/bin/bash
 xrdb \$HOME/.Xresources
 autocutsel -fork
 startxfce4 &
-VNCSTARTUP
-chmod +x ~/.vnc/xstartup
-exit
+EOL
+
+chmod 755 ~/.vnc/xstartup
 EOF
 
-# Создание системного сервиса для автоматического запуска VNC сервера
-green_echo "Создаем системный сервис для автоматического запуска VNC сервера..."
-sudo bash -c 'cat <<VNCSYSTEMD > /etc/systemd/system/vncserver@.service
+# Создание и настройка systemd-юнита для VNC
+print_green "Настройка systemd-юнита для VNC..."
+sudo bash -c 'cat <<EOL > /etc/systemd/system/vncserver@.service
 [Unit]
 Description=Start VNC server at startup
 After=syslog.target network.target
@@ -85,13 +63,14 @@ ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
 WantedBy=multi-user.target
-VNCSYSTEMD'
+EOL'
 
-# Активируем сервис и запускаем VNC сервер
-green_echo "Активируем сервис и запускаем VNC сервер..."
-execute_silent sudo systemctl daemon-reload
-execute_silent sudo systemctl enable vncserver@1
-execute_silent sudo systemctl start vncserver@1
-# sudo reboot # Комментарий о необходимости перезагрузки системы
+# Включение и запуск службы VNC
+print_green "Включение и запуск службы VNC..."
+sudo systemctl enable vncserver@1 > /dev/null 2>&1
+sudo systemctl start vncserver@1 > /dev/null 2>&1
 
-green_echo "GUI и VNC установлены успешно. Чтобы подключиться, используйте IP-адрес вашего сервера и порт 5901."
+# Перезагрузка системы
+print_green "Настройка завершена. Система будет перезагружена..."
+print_green "После перезагрузки VNC-сервер будет доступен на порту 5901. Вы можете подключиться к нему с помощью любого VNC-клиента или Mobaxterm, используя IP-адрес сервера и пароль, который вы установили для VNC."
+sudo reboot
