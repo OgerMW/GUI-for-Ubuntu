@@ -5,24 +5,47 @@ print_green() {
     echo -e "\e[32m$1\e[0m"
 }
 
+# Функция для отображения анимации
+spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
 # Отключаем автоматическое обновление системы
 print_green "Отключаем вывод запроса о необходимости перезапуска системных служб..."
-echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null
-echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null &
+spinner $!
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null &
+spinner $!
 
 # Установка необходимых пакетов и обновление системы
 print_green "Установка sudo и обновление системы..."
-apt install sudo -y > /dev/null 2>&1
-sudo apt update > /dev/null 2>&1
-sudo apt upgrade -y > /dev/null 2>&1
+apt install sudo -y > /dev/null 2>&1 &
+spinner $!
+sudo apt update > /dev/null 2>&1 &
+spinner $!
+sudo apt upgrade -y > /dev/null 2>&1 &
+spinner $!
 
 print_green "Установка дополнительных компонентов..."
-sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel > /dev/null 2>&1
+sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel > /dev/null 2>&1 &
+spinner $!
 
 # Создание пользователя vnc и настройка прав
 print_green "Создание пользователя vnc..."
-useradd -m -s /bin/bash vnc > /dev/null 2>&1
-usermod -aG sudo vnc > /dev/null 2>&1
+useradd -m -s /bin/bash vnc > /dev/null 2>&1 &
+spinner $!
+usermod -aG sudo vnc > /dev/null 2>&1 &
+spinner $!
 
 # Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
@@ -36,7 +59,7 @@ done
 
 # Переключение на пользователя vnc и настройка VNC
 print_green "Настройка VNC-сервера..."
-su - vnc <<EOF > /dev/null 2>&1
+su - vnc <<EOF > /dev/null 2>&1 &
 print_green "Установите пароль для подключения по VNC:"
 vncpasswd
 
@@ -50,6 +73,7 @@ EOL
 
 chmod 755 ~/.vnc/xstartup
 EOF
+spinner $!
 
 # Создание и настройка systemd-юнита для VNC
 print_green "Настройка systemd-юнита для VNC..."
@@ -71,12 +95,15 @@ ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
 WantedBy=multi-user.target
-EOL'
+EOL' &
+spinner $!
 
 # Включение и запуск службы VNC
 print_green "Включение и запуск службы VNC..."
-sudo systemctl enable vncserver@1 > /dev/null 2>&1
-sudo systemctl start vncserver@1 > /dev/null 2>&1
+sudo systemctl enable vncserver@1 > /dev/null 2>&1 &
+spinner $!
+sudo systemctl start vncserver@1 > /dev/null 2>&1 &
+spinner $!
 
 # Перезагрузка системы
 print_green "Настройка завершена. Система будет перезагружена..."
