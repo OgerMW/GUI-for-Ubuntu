@@ -19,21 +19,40 @@ execute_silent bash -c 'echo "APT::Periodic::Unattended-Upgrade "0";' >> /etc/ap
 green_echo "Обновляем систему и устанавливаем необходимые пакеты..."
 execute_silent sudo apt-get update
 execute_silent sudo apt-get upgrade -y
-execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocutsel
+execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocutsel expect
 
 # Создание пользователя VNC
 green_echo "Создаем пользователя VNC..."
 execute_silent sudo useradd -m -s /bin/bash vnc
 execute_silent sudo usermod -aG sudo vnc
 
-# Создание пароля пользователя VNC
+# Запрос пароля для пользователя VNC
 green_echo "Задаем пароль пользователя VNC..."
-passwd vnc
+read -sp 'Введите пароль для пользователя "vnc": ' vnc_password
+echo
+read -sp 'Подтверждение пароля для пользователя "vnc": ' vnc_password_confirm
+echo
+
+if [[ $vnc_password != $vnc_password_confirm ]]; then
+  green_echo "Пароли не совпадают. Пожалуйста, повторите попытку."
+  exit 1
+fi
+
+# Установка пароля пользователя VNC
+echo -e "$vnc_password\n$vnc_password" | sudo passwd vnc
 
 # Установка пароля для сеанса VNC
 green_echo "Задаем пароль для подключения по VNC..."
-su - vnc
-vncpasswd
+sudo su - vnc -c 'expect -c "
+spawn vncpasswd
+expect \"Password:\"
+send \"$vnc_password\r\"
+expect \"Verify:\"
+send \"$vnc_password\r\"
+expect \"Would you like to enter a view-only password (y/n)?\"
+send \"n\r\"
+expect eof
+"'
 
 # Настройка VNC сервера для пользователя vnc
 green_echo "Настраиваем VNC сервер для пользователя vnc..."
