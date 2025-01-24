@@ -23,14 +23,19 @@ execute_silent sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocu
 
 # Создание пользователя VNC
 green_echo "Создаем пользователя VNC..."
-execute_silent sudo adduser --disabled-password --gecos "" vnc
+execute_silent sudo adduser -u vnc -g 1 -s /bin/bash vnc_name
 execute_silent sudo usermod -aG sudo vnc
 
-# Запрашиваем пароль для пользователя vnc
+# Установка пароля для пользователя VNC
+echo -e "$vnc_password\n$vnc_password" | sudo passwd vnc
+
+# Запрос пароля для пользователя VNC
 read -sp 'Введите пароль для пользователя "vnc": ' vnc_password
 echo
 read -sp 'Подтверждение пароля для пользователя "vnc": ' vnc_password_confirm
-if [[ "$vnc_password" != "$vnc_passworConfirm" ]]; then
+echo
+
+if [[ $vnc_password != $vnc_password_confirm ]]; then
   green_echo "Пароли не совпадают. Пожалуйста, повторите попытку."
   exit 1
 fi
