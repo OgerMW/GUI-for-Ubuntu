@@ -23,6 +23,26 @@ spinner() {
     printf "\r      \r"  # Очищаем строку с анимацией
 }
 
+# Отключаем автоматическое обновление системы
+print_green "Отключаем вывод запроса о необходимости перезапуска системных служб..."
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null &
+spinner $!
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null &
+spinner $!
+
+# Установка необходимых пакетов и обновление системы
+print_green "Установка sudo и обновление системы..."
+apt install sudo -y > /dev/null 2>&1 &
+spinner $!
+sudo apt update > /dev/null 2>&1 &
+spinner $!
+sudo apt upgrade -y > /dev/null 2>&1 &
+spinner $!
+
+print_green "Установка дополнительных компонентов..."
+sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel > /dev/null 2>&1 &
+spinner $!
+
 # Создание пользователя vnc и настройка прав
 print_green "Создание пользователя vnc..."
 useradd -m -s /bin/bash vnc > /dev/null 2>&1 &
@@ -59,6 +79,36 @@ EOL
 
 chmod 755 ~/.vnc/xstartup
 EOF
+spinner $!
+
+# Создание и настройка systemd-юнита для VNC
+print_green "Настройка systemd-юнита для VNC..."
+sudo bash -c 'cat <<EOL > /etc/systemd/system/vncserver@.service
+[Unit]
+Description=Start VNC server at startup
+After=syslog.target network.target
+
+[Service]
+Type=forking
+User=vnc
+Group=vnc
+WorkingDirectory=/home/vnc
+
+PIDFile=/home/vnc/.vnc/%H:%i.pid
+ExecStartPre=-/usr/bin/vncserver -kill :%i > /dev/null 2>&1
+ExecStart=/usr/bin/vncserver -depth 24 -geometry 1920x1080 :%i
+ExecStop=/usr/bin/vncserver -kill :%i
+
+[Install]
+WantedBy=multi-user.target
+EOL' &
+spinner $!
+
+# Включение и запуск службы VNC
+print_green "Включение и запуск службы VNC..."
+sudo systemctl enable vncserver@1 > /dev/null 2>&1 &
+spinner $!
+sudo systemctl start vncserver@1 > /dev/null 2>&1 &
 spinner $!
 
 # Перезагрузка системы
