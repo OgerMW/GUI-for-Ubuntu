@@ -50,16 +50,19 @@ spinner $!
 
 # Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
-echo -e "172029\n172029" | sudo passwd vnc
+echo -e "172029\n172029" | sudo passwd vnc > /dev/null 2>&1 &
+spinner $!
 
 # Настройка VNC
 print_green "Настройка VNC-сервера..."
-sudo -u vnc expect <<EOS
+sudo -u vnc expect <<EOS > /dev/null 2>&1
 spawn vncpasswd
 expect "Password:"
 send "172029\r"
 expect "Verify:"
 send "172029\r"
+expect "Would you like to enter a view-only password (y/n)?"
+send "n\r"
 expect eof
 EOS
 
