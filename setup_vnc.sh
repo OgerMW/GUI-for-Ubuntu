@@ -25,24 +25,28 @@ spinner() {
 
 # Отключаем автоматическое обновление системы
 print_green "Отключаем вывод запроса о необходимости перезапуска системных служб..."
-echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null &&
-spinner $!
-echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null &&
-spinner $!
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/99needrestart > /dev/null &
+echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/10periodic > /dev/null & 
 
 # Установка необходимых пакетов и обновление системы
-print_green "Установка обновлений системы..."
-sudo apt-get update && spinner $!
-sudo apt-get install -y sudo && spinner $!
-sudo apt-get upgrade -y && spinner $!
+print_green "Установка sudo и обновление системы..."
+apt install sudo -y > /dev/null 2>&1 &
+spinner $!
+sudo apt update > /dev/null 2>&1 &
+spinner $!
+sudo apt upgrade -y > /dev/null 2>&1 &
+spinner $!
 
 print_green "Установка дополнительных компонентов..."
-sudo apt-get install -y xfce4 xfce4-goodies tightvncserver autocutsel && spinner $!
+sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel > /dev/null 2>&1 &
+spinner $!
 
 # Создание пользователя vnc и настройка прав
 print_green "Создание пользователя vnc..."
-sudo useradd -m -s /bin/bash vnc && spinner $!
-sudo usermod -aG sudo vnc && spinner $!
+useradd -m -s /bin/bash vnc > /dev/null 2>&1 &
+spinner $!
+usermod -aG sudo vnc > /dev/null 2>&1 &
+spinner $!
 
 # Установка пароля для пользователя vnc
 print_green "Установите пароль для пользователя vnc:"
@@ -92,8 +96,10 @@ EOL'
 
 # Включение и запуск службы VNC
 print_green "Включение и запуск службы VNC..."
-sudo systemctl enable vncserver@1 && spinner $!
-sudo systemctl start vncserver@1 && spinner $!
+sudo systemctl enable vncserver@1 > /dev/null 2>&1 &
+spinner $!
+sudo systemctl start vncserver@1 > /dev/null 2>&1 &
+spinner $!
 
 # Завершение установки
 print_green "Установка завершена. Теперь вы можете подключиться по протоколу VNC к вашему серверу, используя выданный вам IP и Port 5901."
