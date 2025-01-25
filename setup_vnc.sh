@@ -57,7 +57,6 @@ echo -e "172029\n172029" | passwd vnc
 # Переключение на пользователя vnc и настройка VNC
 print_green "Настройка VNC-сервера..."
 su - vnc <<'EOF' > /dev/null 2>&1 &
-print_green "Установите пароль для подключения по VNC:"
 
 # Используем expect для автоматизации ввода пароля
 expect <<EOS
@@ -70,13 +69,13 @@ expect eof
 EOS
 
 # Создание и настройка файла xstartup
+su - vnc <<'EOF' > /dev/null 2>&1
 cat <<EOL > ~/.vnc/xstartup
 #!/bin/bash
 xrdb \$HOME/.Xresources
 autocutsel -fork
 startxfce4 &
 EOL
-
 chmod 755 ~/.vnc/xstartup
 EOF
 spinner $!
