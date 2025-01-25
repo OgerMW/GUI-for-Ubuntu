@@ -41,6 +41,28 @@ print_green "Установка дополнительных компонент�
 sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel expect > /dev/null 2>&1 &
 spinner $!
 
+# Добавление репозитория Google Chrome
+print_green "Добавляем репозиторий Google Chrome..."
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add - > /dev/null 2>&1 &
+spinner $!
+echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list > /dev/null 2>&1 &
+spinner $!
+
+# Обновление списка пакетов после добавления нового репозитория
+print_green "Обновляем список пакетов..."
+sudo apt update > /dev/null 2>&1 &
+spinner $!
+
+# Установка Google Chrome
+print_green "Устанавливаем Google Chrome..."
+sudo apt install google-chrome-stable -y > /dev/null 2>&1 &
+spinner $!
+
+# Выбор варианта для x-terminal-emulator
+print_green "Заменяем Terminal Emulator..."
+sudo update-alternatives --config x-terminal-emulator <<< "2" > /dev/null 2>&1 &
+spinner $!
+
 # Создание пользователя vnc и настройка прав
 print_green "Создание пользователя vnc..."
 useradd -m -s /bin/bash vnc > /dev/null 2>&1 &
@@ -72,6 +94,7 @@ sudo -u vnc cat <<EOL > /home/vnc/.vnc/xstartup
 xrdb \$HOME/.Xresources
 autocutsel -fork
 startxfce4 &
+google-chrome-stable &
 EOL
 sudo chmod 755 /home/vnc/.vnc/xstartup
 
