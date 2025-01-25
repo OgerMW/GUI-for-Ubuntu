@@ -38,7 +38,7 @@ sudo apt upgrade -y > /dev/null 2>&1 &
 spinner $!
 
 print_green "Установка дополнительных компонентов..."
-sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel > /dev/null 2>&1 &
+sudo apt install -y xfce4 xfce4-goodies tightvncserver autocutsel expect > /dev/null 2>&1 &
 spinner $!
 
 # Создание пользователя vnc и настройка прав
@@ -64,13 +64,13 @@ expect eof
 EOS
 
 # Создание и настройка файла xstartup
-sudo -u vnc cat <<EOL > ~/.vnc/xstartup
+sudo -u vnc cat <<EOL > /home/vnc/.vnc/xstartup
 #!/bin/bash
 xrdb \$HOME/.Xresources
 autocutsel -fork
 startxfce4 &
 EOL
-sudo chmod 755 ~/.vnc/xstartup
+sudo chmod 755 /home/vnc/.vnc/xstartup
 
 # Создание и настройка systemd-юнита для VNC
 print_green "Настройка systemd-юнита для VNC..."
