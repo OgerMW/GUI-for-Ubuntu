@@ -31,7 +31,7 @@ echo 'APT::Periodic::Unattended-Upgrade "0";' | sudo tee -a /etc/apt/apt.conf.d/
 spinner $!
 
 # Установка необходимых пакетов и обновление системы
-print_green "Установка sudo и обновление системы..."
+print_green "Установка обновлений системы..."
 apt install sudo -y > /dev/null 2>&1 &
 spinner $!
 sudo apt update > /dev/null 2>&1 &
