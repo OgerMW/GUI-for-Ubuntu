@@ -94,7 +94,6 @@ sudo -u vnc cat <<EOL > /home/vnc/.vnc/xstartup
 xrdb \$HOME/.Xresources
 autocutsel -fork
 startxfce4 &
-google-chrome-stable &
 EOL
 sudo chmod 755 /home/vnc/.vnc/xstartup
 
