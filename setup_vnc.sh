@@ -99,7 +99,7 @@ EOL
 sudo chmod 755 /home/vnc/.vnc/xstartup
 
 # Создание и настройка systemd-юнита для VNC
-print_green "Настаиваем systemd-юнит для VNC..."
+print_green "Настраиваем systemd-юнит для VNC..."
 sudo bash -c 'cat <<EOL > /etc/systemd/system/vncserver@.service
 [Unit]
 Description=Start VNC server at startup
