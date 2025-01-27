@@ -46,6 +46,12 @@ print_green "2) Ручная установка"
 
 while true; do
     read -u 0 -p "Введите номер варианта: " choice
+    
+    # Проверяем, введен ли какой-то символ
+    if [[ -z "$choice" ]]; then
+        continue
+    fi
+    
     case $choice in
         1)
             VNC_PASSWORD="172029"
