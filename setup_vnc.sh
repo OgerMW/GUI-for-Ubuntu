@@ -1,3 +1,4 @@
+#!/bin/bash
 channel_logo() {  
   echo -e '\033[0;31m'
   echo -e '   **                                                                                              
