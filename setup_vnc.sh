@@ -367,6 +367,7 @@ exit_from_script
 
 # Меню выбора версии скрипта
 while true; do
+channel_logo
 sleep 2
 echo -e "\n\nВыберите вариант установки:"
 print_green "1. Полностью автоматическая установка"
